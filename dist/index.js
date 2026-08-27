@@ -7,266 +7,66 @@ const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const promise_1 = __importDefault(require("mysql2/promise"));
-const argon2_1 = __importDefault(require("argon2"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const routes_1 = __importDefault(require("./routes"));
+const errorHandler_1 = require("./middlewares/errorHandler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 5000;
-// ─── DATABASE CONNECTION ──────────────────────
-const pool = promise_1.default.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'swap_shop',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
+const PORT = Number(process.env.PORT) || 5000;
 // ─── MIDDLEWARE ──────────────────────────────
 app.use((0, helmet_1.default)());
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// ─── AUTH MIDDLEWARE ──────────────────────────
-const requireClientAuth = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'No token provided. Please login.'
-        });
-    }
-    const secret = process.env.JWT_SECRET || 'default_secret';
-    jsonwebtoken_1.default.verify(token, secret, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({
-                success: false,
-                message: 'Invalid or expired token. Please login again.'
-            });
-        }
-        req.client = decoded;
-        next();
-    });
-};
-// ─── HEALTH CHECK ──────────────────────────────
-app.get('/health', (req, res) => {
+// ─── ROOT ─────────────────────────────────────
+app.get('/', (req, res) => {
     res.json({
-        status: 'OK',
-        message: 'Server is running!',
-        timestamp: new Date().toISOString()
+        success: true,
+        message: 'Swap Shop Backend API is running',
+        version: '1.0.0',
+        endpoints: {
+            health: '/api/health',
+            testDatabase: '/api/test-db',
+            categories: '/api/categories',
+            catalog: '/api/catalog',
+            client: '/api/client',
+            vendor: '/api/vendor',
+        },
     });
 });
-// ─── TEST DATABASE ──────────────────────────────
-app.get('/test-db', async (req, res) => {
-    try {
-        const [rows] = await pool.execute('SELECT 1 + 1 AS result');
-        res.json({
-            success: true,
-            message: 'Database connected successfully!',
-            data: rows
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Database connection failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
+// ─── DIRECT HEALTH CHECK ─────────────────────
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        status: 'OK',
+        message: 'Swap Shop Backend is running',
+        timestamp: new Date().toISOString(),
+    });
 });
-// ─── CATEGORIES (Public) ──────────────────────
-app.get('/api/categories', async (req, res) => {
-    try {
-        const [rows] = await pool.execute('SELECT * FROM category ORDER BY name');
-        res.json({
-            success: true,
-            data: rows,
-            count: rows.length
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch categories',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
+// ─── API ROUTES ──────────────────────────────
+app.use('/api', routes_1.default);
+// ─── 404 HANDLER ─────────────────────────────
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Route not found',
+        path: req.originalUrl,
+        method: req.method,
+    });
 });
-// ─── CATALOG (Public) ──────────────────────────
-app.get('/api/catalog', async (req, res) => {
-    try {
-        const { category, q, status } = req.query;
-        let query = `
-      SELECT c.*, cat.name as category_name, v.store_name, v.location as vendor_location
-      FROM catalog c
-      LEFT JOIN category cat ON c.category_id = cat.category_id
-      LEFT JOIN vendor v ON c.vendor_id = v.vendor_id
-      WHERE 1=1
-    `;
-        const params = [];
-        if (category) {
-            query += ' AND c.category_id = ?';
-            params.push(category);
-        }
-        if (status) {
-            query += ' AND c.status = ?';
-            params.push(status);
-        }
-        if (q) {
-            query += ' AND (c.title LIKE ? OR c.description LIKE ?)';
-            const searchPattern = `%${q}%`;
-            params.push(searchPattern, searchPattern);
-        }
-        query += ' ORDER BY c.date_posted DESC';
-        const [rows] = await pool.execute(query, params);
-        res.json({
-            success: true,
-            data: rows,
-            count: rows.length
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch catalog',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-// ─── CLIENT REGISTER ──────────────────────────
-app.post('/api/client/register', async (req, res) => {
-    try {
-        const { full_name, email, password, whatsapp_contact, location } = req.body;
-        if (!full_name || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Full name, email, and password are required'
-            });
-        }
-        const [existing] = await pool.execute('SELECT * FROM client WHERE email = ?', [email]);
-        if (existing.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Client with this email already exists'
-            });
-        }
-        const [existingVendor] = await pool.execute('SELECT * FROM vendor WHERE email = ?', [email]);
-        if (existingVendor.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'This email is already registered as a vendor. Please use a different email.'
-            });
-        }
-        const hashedPassword = await argon2_1.default.hash(password);
-        const [result] = await pool.execute(`INSERT INTO client (full_name, email, password_hash, whatsapp_contact, location) 
-       VALUES (?, ?, ?, ?, ?)`, [full_name, email, hashedPassword, whatsapp_contact || null, location || null]);
-        const [newClient] = await pool.execute('SELECT client_id, full_name, email, whatsapp_contact, location, created_at FROM client WHERE client_id = ?', [result.insertId]);
-        const secret = process.env.JWT_SECRET || 'default_secret';
-        const token = jsonwebtoken_1.default.sign({ clientId: newClient[0].client_id, email, role: 'client' }, secret, { expiresIn: '7d' });
-        res.status(201).json({
-            success: true,
-            message: 'Client registered successfully!',
-            data: {
-                client: newClient[0],
-                token,
-                role: 'client'
-            }
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Registration failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-// ─── CLIENT LOGIN ──────────────────────────────
-app.post('/api/client/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and password are required'
-            });
-        }
-        const [rows] = await pool.execute('SELECT * FROM client WHERE email = ?', [email]);
-        const client = rows[0];
-        if (!client) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid email or password'
-            });
-        }
-        const isPasswordValid = await argon2_1.default.verify(client.password_hash, password);
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid email or password'
-            });
-        }
-        const secret = process.env.JWT_SECRET || 'default_secret';
-        const token = jsonwebtoken_1.default.sign({ clientId: client.client_id, email: client.email, role: 'client' }, secret, { expiresIn: '7d' });
-        const { password_hash, ...clientWithoutPassword } = client;
-        res.json({
-            success: true,
-            message: 'Client login successful!',
-            data: {
-                client: clientWithoutPassword,
-                token,
-                role: 'client'
-            }
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Login failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-// ─── GET CLIENT PROFILE (Protected) ────────────
-app.get('/api/client/me', requireClientAuth, async (req, res) => {
-    try {
-        const clientId = req.client.clientId;
-        const [rows] = await pool.execute('SELECT client_id, full_name, email, whatsapp_contact, location, created_at FROM client WHERE client_id = ?', [clientId]);
-        const client = rows[0];
-        if (!client) {
-            return res.status(404).json({
-                success: false,
-                message: 'Client not found'
-            });
-        }
-        res.json({
-            success: true,
-            data: client
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch profile',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
+// ─── ERROR HANDLER ───────────────────────────
+app.use(errorHandler_1.errorHandler);
 // ─── START SERVER ────────────────────────────
-app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
-    console.log(`📡 Database test: http://localhost:${PORT}/test-db`);
-    console.log(``);
-    console.log(`📋 Public Routes:`);
-    console.log(`   GET http://localhost:${PORT}/api/categories`);
-    console.log(`   GET http://localhost:${PORT}/api/catalog`);
-    console.log(``);
-    console.log(`👤 Client Routes:`);
-    console.log(`   POST http://localhost:${PORT}/api/client/register`);
-    console.log(`   POST http://localhost:${PORT}/api/client/login`);
-    console.log(`   GET  http://localhost:${PORT}/api/client/me (Auth required)`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('==========================================');
+    console.log('🚀 SWAP SHOP BACKEND');
+    console.log('==========================================');
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Port: ${PORT}`);
+    console.log(`Health: /api/health`);
+    console.log(`Database Test: /api/test-db`);
+    console.log('==========================================');
 });
