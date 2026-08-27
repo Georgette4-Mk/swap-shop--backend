@@ -10,20 +10,14 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-// ─── MIDDLEWARE ──────────────────────────────
-
 app.use(helmet());
-app.use(
-  cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// ─── ROOT ─────────────────────────────────────
 
 app.get('/', (req, res) => {
   res.json({
@@ -41,10 +35,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// ─── DIRECT HEALTH CHECK ─────────────────────
-
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  res.json({
     success: true,
     status: 'OK',
     message: 'Swap Shop Backend is running',
@@ -52,34 +44,20 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ─── API ROUTES ──────────────────────────────
-
 app.use('/api', routes);
-
-// ─── 404 HANDLER ─────────────────────────────
 
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
     path: req.originalUrl,
-    method: req.method,
   });
 });
 
-// ─── ERROR HANDLER ───────────────────────────
-
 app.use(errorHandler);
 
-// ─── START SERVER ────────────────────────────
-
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('==========================================');
-  console.log('🚀 SWAP SHOP BACKEND');
-  console.log('==========================================');
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Port: ${PORT}`);
-  console.log(`Health: /api/health`);
-  console.log(`Database Test: /api/test-db`);
-  console.log('==========================================');
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Health: /api/health`);
+  console.log(`📡 Database test: /api/test-db`);
 });
