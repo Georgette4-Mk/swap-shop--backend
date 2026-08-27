@@ -322,6 +322,142 @@ app.get('/api/client/me', requireClientAuth, async (req: any, res: any) => {
   }
 });
 
+// ─── VENDOR ROUTES ─────────────────────────────
+
+// Register Vendor
+app.post('/api/vendor/register', async (req, res) => {
+  try {
+    const { store_name, email, password, whatsapp_contact, location } = req.body;
+
+    if (!store_name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Store name, email, and password are required'
+      });
+    }
+
+    const [existing] = await pool.execute(
+      'SELECT * FROM vendor WHERE email = ?',
+      [email]
+    );
+
+    if ((existing as any[]).length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vendor with this email already exists'
+      });
+    }
+
+    const [existingClient] = await pool.execute(
+      'SELECT * FROM client WHERE email = ?',
+      [email]
+    );
+
+    if ((existingClient as any[]).length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'This email is already registered as a client. Please use a different email.'
+      });
+    }
+
+    const hashedPassword = await argon2.hash(password);
+
+    const [result] = await pool.execute(
+      `INSERT INTO vendor (store_name, email, password_hash, whatsapp_contact, location) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [store_name, email, hashedPassword, whatsapp_contact || null, location || null]
+    );
+
+    const [newVendor] = await pool.execute(
+      'SELECT vendor_id, store_name, email, whatsapp_contact, location, is_verified, created_at FROM vendor WHERE vendor_id = ?',
+      [(result as any).insertId]
+    );
+
+    const secret = process.env.JWT_SECRET || 'default_secret';
+    const token = jwt.sign(
+      { vendorId: (newVendor as any[])[0].vendor_id, email, role: 'vendor' },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Vendor registered successfully!',
+      data: {
+        vendor: (newVendor as any[])[0],
+        token,
+        role: 'vendor'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Registration failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Login Vendor
+app.post('/api/vendor/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    const [rows] = await pool.execute(
+      'SELECT * FROM vendor WHERE email = ?',
+      [email]
+    );
+
+    const vendor = (rows as any[])[0];
+    if (!vendor) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    const isPasswordValid = await argon2.verify(vendor.password_hash, password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    const secret = process.env.JWT_SECRET || 'default_secret';
+    const token = jwt.sign(
+      { vendorId: vendor.vendor_id, email: vendor.email, role: 'vendor' },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    const { password_hash, ...vendorWithoutPassword } = vendor;
+
+    res.json({
+      success: true,
+      message: 'Vendor login successful!',
+      data: {
+        vendor: vendorWithoutPassword,
+        token,
+        role: 'vendor'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Login failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // ─── START SERVER ────────────────────────────
 
 app.listen(PORT, '0.0.0.0', () => {
@@ -337,4 +473,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   POST /api/client/register`);
   console.log(`   POST /api/client/login`);
   console.log(`   GET  /api/client/me (Auth required)`);
+  console.log(``);
+  console.log(`📦 Vendor Routes:`);
+  console.log(`   POST /api/vendor/register`);
+  console.log(`   POST /api/vendor/login`);
 });
