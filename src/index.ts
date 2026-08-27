@@ -9,16 +9,16 @@ import jwt from 'jsonwebtoken';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 // ─── DATABASE CONNECTION ──────────────────────
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'swap_shop',
+  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.MYSQLPORT || process.env.DB_PORT || '3306'),
+  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '',
+  database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'swap_shop',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -59,7 +59,7 @@ const requireClientAuth = (req: any, res: any, next: any) => {
 
 // ─── HEALTH CHECK ──────────────────────────────
 
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Server is running!',
@@ -69,7 +69,7 @@ app.get('/health', (req, res) => {
 
 // ─── TEST DATABASE ──────────────────────────────
 
-app.get('/test-db', async (req, res) => {
+app.get('/api/test-db', async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT 1 + 1 AS result');
     res.json({
@@ -324,17 +324,17 @@ app.get('/api/client/me', requireClientAuth, async (req: any, res: any) => {
 
 // ─── START SERVER ────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/health`);
-  console.log(`📡 Database test: http://localhost:${PORT}/test-db`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Health check: /api/health`);
+  console.log(`📡 Database test: /api/test-db`);
   console.log(``);
   console.log(`📋 Public Routes:`);
-  console.log(`   GET http://localhost:${PORT}/api/categories`);
-  console.log(`   GET http://localhost:${PORT}/api/catalog`);
+  console.log(`   GET /api/categories`);
+  console.log(`   GET /api/catalog`);
   console.log(``);
   console.log(`👤 Client Routes:`);
-  console.log(`   POST http://localhost:${PORT}/api/client/register`);
-  console.log(`   POST http://localhost:${PORT}/api/client/login`);
-  console.log(`   GET  http://localhost:${PORT}/api/client/me (Auth required)`);
+  console.log(`   POST /api/client/register`);
+  console.log(`   POST /api/client/login`);
+  console.log(`   GET  /api/client/me (Auth required)`);
 });
