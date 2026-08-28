@@ -3,6 +3,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const database_1 = require("../config/database");
 const router = (0, express_1.Router)();
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Check server health
+ *     description: Returns the status of the server
+ *     responses:
+ *       200:
+ *         description: Server is running
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ */
 router.get('/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -10,6 +31,27 @@ router.get('/health', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+/**
+ * @swagger
+ * /api/test-db:
+ *   get:
+ *     summary: Test database connection
+ *     description: Checks if the database is connected
+ *     responses:
+ *       200:
+ *         description: Database connected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ */
 router.get('/test-db', async (req, res) => {
     try {
         const [rows] = await database_1.pool.execute('SELECT 1 + 1 AS result');
@@ -27,6 +69,36 @@ router.get('/test-db', async (req, res) => {
         });
     }
 });
+/**
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Get all categories
+ *     description: Returns a list of all product categories
+ *     responses:
+ *       200:
+ *         description: List of categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       category_id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                 count:
+ *                   type: integer
+ */
 router.get('/categories', async (req, res) => {
     try {
         const [rows] = await database_1.pool.execute('SELECT * FROM category ORDER BY name');
@@ -40,46 +112,6 @@ router.get('/categories', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch categories',
-            error: error instanceof Error ? error.message : 'Unknown error'
-        });
-    }
-});
-router.get('/catalog', async (req, res) => {
-    try {
-        const { category, q, status } = req.query;
-        let query = `
-      SELECT c.*, cat.name as category_name, v.store_name, v.location as vendor_location
-      FROM catalog c
-      LEFT JOIN category cat ON c.category_id = cat.category_id
-      LEFT JOIN vendor v ON c.vendor_id = v.vendor_id
-      WHERE 1=1
-    `;
-        const params = [];
-        if (category) {
-            query += ' AND c.category_id = ?';
-            params.push(category);
-        }
-        if (status) {
-            query += ' AND c.status = ?';
-            params.push(status);
-        }
-        if (q) {
-            query += ' AND (c.title LIKE ? OR c.description LIKE ?)';
-            const searchPattern = `%${q}%`;
-            params.push(searchPattern, searchPattern);
-        }
-        query += ' ORDER BY c.date_posted DESC';
-        const [rows] = await database_1.pool.execute(query, params);
-        res.json({
-            success: true,
-            data: rows,
-            count: rows.length
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch catalog',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }

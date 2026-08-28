@@ -7,12 +7,13 @@ const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const routes_1 = __importDefault(require("./routes"));
 const errorHandler_1 = require("./middlewares/errorHandler");
+const swagger_1 = require("./config/swagger");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = Number(process.env.PORT) || 5000;
-// ─── MIDDLEWARE ──────────────────────────────
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
     origin: '*',
@@ -21,12 +22,15 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// ─── ROOT ─────────────────────────────────────
+// ─── SWAGGER DOCUMENTATION ──────────────────────
+app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpec));
+// ─── ROUTES ──────────────────────────────────────
 app.get('/', (req, res) => {
     res.json({
         success: true,
         message: 'Swap Shop Backend API is running',
         version: '1.0.0',
+        documentation: '/api-docs',
         endpoints: {
             health: '/api/health',
             testDatabase: '/api/test-db',
@@ -37,36 +41,25 @@ app.get('/', (req, res) => {
         },
     });
 });
-// ─── DIRECT HEALTH CHECK ─────────────────────
 app.get('/health', (req, res) => {
-    res.status(200).json({
+    res.json({
         success: true,
         status: 'OK',
         message: 'Swap Shop Backend is running',
         timestamp: new Date().toISOString(),
     });
 });
-// ─── API ROUTES ──────────────────────────────
 app.use('/api', routes_1.default);
-// ─── 404 HANDLER ─────────────────────────────
 app.use((req, res) => {
     res.status(404).json({
         success: false,
         message: 'Route not found',
         path: req.originalUrl,
-        method: req.method,
     });
 });
-// ─── ERROR HANDLER ───────────────────────────
 app.use(errorHandler_1.errorHandler);
-// ─── START SERVER ────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('==========================================');
-    console.log('🚀 SWAP SHOP BACKEND');
-    console.log('==========================================');
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Port: ${PORT}`);
-    console.log(`Health: /api/health`);
-    console.log(`Database Test: /api/test-db`);
-    console.log('==========================================');
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 Health: /api/health`);
+    console.log(`📚 API Docs: /api-docs`);
 });

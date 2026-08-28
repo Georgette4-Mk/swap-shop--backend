@@ -12,7 +12,7 @@ exports.pool = promise_1.default.createPool({
     port: parseInt(process.env.MYSQLPORT || process.env.DB_PORT || '3306'),
     user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
     password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '',
-    database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'swap_shop',
+    database: process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || 'railway',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
