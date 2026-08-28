@@ -1,3 +1,7 @@
+// ============================================================
+// OWNERSHIP MIDDLEWARE
+// ============================================================
+
 import { pool } from '../config/database';
 
 export const checkCatalogOwnership = async (req: any, res: any, next: any) => {

@@ -1,5 +1,5 @@
 // ============================================================
-// TYPE DEFINITIONS - All interfaces for the application
+// TYPE DEFINITIONS
 // ============================================================
 
 // ─── CLIENT (Buyer) ──────────────────────────
@@ -11,6 +11,9 @@ export interface Client {
   password_hash: string;
   whatsapp_contact: string | null;
   location: string | null;
+  is_admin: boolean;
+  reset_token: string | null;
+  reset_token_expiry: Date | null;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +43,7 @@ export interface ClientResponse {
   email: string;
   whatsapp_contact: string | null;
   location: string | null;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -53,6 +57,8 @@ export interface Vendor {
   whatsapp_contact: string | null;
   location: string | null;
   is_verified: boolean;
+  reset_token: string | null;
+  reset_token_expiry: Date | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,7 +92,18 @@ export interface VendorResponse {
   created_at: string;
 }
 
-// ─── CATALOG (Listings) ──────────────────────────
+// ─── FORGOT PASSWORD ──────────────────────────
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+// ─── CATALOG ──────────────────────────────────
 
 export interface CatalogItem {
   catalog_id: number;
@@ -118,22 +135,6 @@ export interface CatalogUpdate {
   status?: 'active' | 'pending' | 'sold';
 }
 
-export interface CatalogResponse {
-  catalog_id: number;
-  vendor_id: number;
-  category_id: number;
-  category_name: string;
-  title: string;
-  description: string | null;
-  price: string;
-  image_url: string | null;
-  status: 'active' | 'pending' | 'sold';
-  date_posted: string;
-  store_name: string;
-  vendor_location: string | null;
-  vendor_whatsapp: string | null;
-}
-
 // ─── CART ──────────────────────────────────────
 
 export interface ShoppingCart {
@@ -153,12 +154,6 @@ export interface CartItem {
   title: string;
   price: string;
   image_url: string | null;
-}
-
-export interface CartResponse {
-  cart: ShoppingCart;
-  items: CartItem[];
-  total: string;
 }
 
 export interface AddToCart {
@@ -221,6 +216,13 @@ export interface JwtPayload {
   role: 'client' | 'vendor';
   iat: number;
   exp: number;
+}
+
+// ─── REQUEST WITH AUTH ──────────────────────
+
+export interface AuthRequest extends Request {
+  client?: JwtPayload;
+  vendor?: JwtPayload;
 }
 
 // ─── API RESPONSE ────────────────────────────

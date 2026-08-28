@@ -151,7 +151,7 @@ export const getClientProfile = async (req: any, res: Response) => {
     const clientId = req.client.clientId;
 
     const [rows] = await pool.execute(
-      'SELECT client_id, full_name, email, whatsapp_contact, location, created_at FROM client WHERE client_id = ?',
+      'SELECT client_id, full_name, email, whatsapp_contact, location, is_admin, created_at FROM client WHERE client_id = ?',
       [clientId]
     );
 
@@ -204,7 +204,7 @@ export const updateClientProfile = async (req: any, res: Response) => {
     );
 
     const [updated] = await pool.execute(
-      'SELECT client_id, full_name, email, whatsapp_contact, location, created_at FROM client WHERE client_id = ?',
+      'SELECT client_id, full_name, email, whatsapp_contact, location, is_admin, created_at FROM client WHERE client_id = ?',
       [clientId]
     );
 

@@ -1,3 +1,7 @@
+// ============================================================
+// AUTHENTICATION MIDDLEWARE
+// ============================================================
+
 import jwt from 'jsonwebtoken';
 
 export const requireClientAuth = (req: any, res: any, next: any) => {
@@ -7,7 +11,7 @@ export const requireClientAuth = (req: any, res: any, next: any) => {
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: 'No token provided. Please login as a client.'
+      message: 'No token provided. Please login.'
     });
   }
 
@@ -37,7 +41,7 @@ export const requireVendorAuth = (req: any, res: any, next: any) => {
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: 'No token provided. Please login as a vendor.'
+      message: 'No token provided. Please login.'
     });
   }
 

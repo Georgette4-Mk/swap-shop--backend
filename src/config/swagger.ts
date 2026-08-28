@@ -6,7 +6,7 @@ const options = {
     info: {
       title: 'Swap Shop API Documentation',
       version: '1.0.0',
-      description: 'Swap Shop Marketplace Backend API - Buy, Sell, and Trade items on campus.',
+      description: 'Swap Shop Marketplace Backend API',
       contact: {
         name: 'Swap Shop Team',
         email: 'support@swapshop.com',
@@ -37,7 +37,7 @@ const options = {
       },
     ],
   },
-  apis: ['./src/routes/*.ts', './src/controllers/*.ts'], // Path to the API docs
+  apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

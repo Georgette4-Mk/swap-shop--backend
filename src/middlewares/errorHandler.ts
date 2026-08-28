@@ -1,3 +1,7 @@
+// ============================================================
+// GLOBAL ERROR HANDLER
+// ============================================================
+
 import { Request, Response, NextFunction } from 'express';
 
 export const errorHandler = (
