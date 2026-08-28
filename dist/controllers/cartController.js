@@ -9,19 +9,23 @@ const database_1 = require("../config/database");
 const getClientCart = async (req, res) => {
     try {
         const clientId = req.client.clientId;
+        // Get active cart
         let [carts] = await database_1.pool.execute('SELECT * FROM shopping_cart WHERE client_id = ? AND status = "active"', [clientId]);
         let cart = carts[0];
+        // If no active cart, create one
         if (!cart) {
             const [result] = await database_1.pool.execute('INSERT INTO shopping_cart (client_id, status) VALUES (?, "active")', [clientId]);
             const [newCart] = await database_1.pool.execute('SELECT * FROM shopping_cart WHERE cart_id = ?', [result.insertId]);
             cart = newCart[0];
         }
+        // Get cart items with product details
         const [items] = await database_1.pool.execute(`SELECT i.*, c.title, c.description, c.price, c.image_url, c.status as catalog_status,
               v.store_name, v.location as vendor_location
        FROM items i
        JOIN catalog c ON i.catalog_id = c.catalog_id
        JOIN vendor v ON c.vendor_id = v.vendor_id
        WHERE i.cart_id = ?`, [cart.cart_id]);
+        // Calculate total
         let total = 0;
         items.forEach((item) => {
             total += parseFloat(item.price) * item.quantity;
@@ -55,6 +59,7 @@ const addToCart = async (req, res) => {
                 message: 'catalog_id is required'
             });
         }
+        // Check if item exists and is active
         const [catalogItems] = await database_1.pool.execute('SELECT * FROM catalog WHERE catalog_id = ? AND status = "active"', [catalog_id]);
         if (catalogItems.length === 0) {
             return res.status(404).json({
@@ -62,6 +67,7 @@ const addToCart = async (req, res) => {
                 message: 'Item not found or not available'
             });
         }
+        // Get or create active cart
         let [carts] = await database_1.pool.execute('SELECT * FROM shopping_cart WHERE client_id = ? AND status = "active"', [clientId]);
         let cart = carts[0];
         if (!cart) {
@@ -69,13 +75,17 @@ const addToCart = async (req, res) => {
             const [newCart] = await database_1.pool.execute('SELECT * FROM shopping_cart WHERE cart_id = ?', [result.insertId]);
             cart = newCart[0];
         }
+        // Check if item already in cart
         const [existing] = await database_1.pool.execute('SELECT * FROM items WHERE cart_id = ? AND catalog_id = ?', [cart.cart_id, catalog_id]);
         if (existing.length > 0) {
+            // Update quantity
             await database_1.pool.execute('UPDATE items SET quantity = quantity + ? WHERE cart_id = ? AND catalog_id = ?', [quantity, cart.cart_id, catalog_id]);
         }
         else {
+            // Add new item
             await database_1.pool.execute('INSERT INTO items (cart_id, catalog_id, quantity) VALUES (?, ?, ?)', [cart.cart_id, catalog_id, quantity]);
         }
+        // Get updated cart items
         const [updatedItems] = await database_1.pool.execute(`SELECT i.*, c.title, c.price, c.image_url
        FROM items i
        JOIN catalog c ON i.catalog_id = c.catalog_id
@@ -109,6 +119,7 @@ const updateCartItem = async (req, res) => {
                 message: 'Quantity must be at least 1'
             });
         }
+        // Check if item belongs to user's cart
         const [items] = await database_1.pool.execute(`SELECT i.*, sc.client_id 
        FROM items i
        JOIN shopping_cart sc ON i.cart_id = sc.cart_id
@@ -138,6 +149,7 @@ exports.updateCartItem = updateCartItem;
 const removeCartItem = async (req, res) => {
     try {
         const itemId = parseInt(req.params.id);
+        // Check if item belongs to user's cart
         const [items] = await database_1.pool.execute(`SELECT i.*, sc.client_id 
        FROM items i
        JOIN shopping_cart sc ON i.cart_id = sc.cart_id

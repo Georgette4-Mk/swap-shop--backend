@@ -110,7 +110,7 @@ exports.loginClient = loginClient;
 const getClientProfile = async (req, res) => {
     try {
         const clientId = req.client.clientId;
-        const [rows] = await database_1.pool.execute('SELECT client_id, full_name, email, whatsapp_contact, location, created_at FROM client WHERE client_id = ?', [clientId]);
+        const [rows] = await database_1.pool.execute('SELECT client_id, full_name, email, whatsapp_contact, location, is_admin, created_at FROM client WHERE client_id = ?', [clientId]);
         const client = rows[0];
         if (!client) {
             return res.status(404).json({
@@ -159,7 +159,7 @@ const updateClientProfile = async (req, res) => {
         }
         values.push(clientId);
         await database_1.pool.execute(`UPDATE client SET ${fields.join(', ')} WHERE client_id = ?`, values);
-        const [updated] = await database_1.pool.execute('SELECT client_id, full_name, email, whatsapp_contact, location, created_at FROM client WHERE client_id = ?', [clientId]);
+        const [updated] = await database_1.pool.execute('SELECT client_id, full_name, email, whatsapp_contact, location, is_admin, created_at FROM client WHERE client_id = ?', [clientId]);
         res.json({
             success: true,
             message: 'Profile updated successfully!',

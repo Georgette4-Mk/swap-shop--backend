@@ -1,12 +1,30 @@
-// ============================================================
-// PUBLIC ROUTES
-// ============================================================
-
 import { Router } from 'express';
 import { pool } from '../config/database';
 
 const router = Router();
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Check server health
+ *     description: Returns the status of the server
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is running
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ */
 router.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -15,6 +33,28 @@ router.get('/health', (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/test-db:
+ *   get:
+ *     summary: Test database connection
+ *     description: Checks if the database is connected
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Database connected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ */
 router.get('/test-db', async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT 1 + 1 AS result');
@@ -32,6 +72,41 @@ router.get('/test-db', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Get all categories
+ *     description: Returns a list of all product categories
+ *     tags: [Public]
+ *     responses:
+ *       200:
+ *         description: List of categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       category_id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                 count:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ */
 router.get('/categories', async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT * FROM category ORDER BY name');
@@ -49,6 +124,47 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/catalog:
+ *   get:
+ *     summary: Browse catalog
+ *     description: Get all catalog items with optional filters
+ *     tags: [Public]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: integer
+ *         description: Filter by category ID
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search by keyword in title or description
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, pending, sold]
+ *         description: Filter by status
+ *     responses:
+ *       200:
+ *         description: List of catalog items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                 count:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ */
 router.get('/catalog', async (req, res) => {
   try {
     const { category, q, status } = req.query;
@@ -96,6 +212,37 @@ router.get('/catalog', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/catalog/{id}:
+ *   get:
+ *     summary: Get single catalog item
+ *     description: Returns details of a specific catalog item
+ *     tags: [Public]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Catalog item ID
+ *     responses:
+ *       200:
+ *         description: Item details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Item not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/catalog/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -131,6 +278,50 @@ router.get('/catalog/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/vendor/{id}:
+ *   get:
+ *     summary: Get vendor public profile
+ *     description: Returns public information about a vendor
+ *     tags: [Public]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Vendor ID
+ *     responses:
+ *       200:
+ *         description: Vendor profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     vendor_id:
+ *                       type: integer
+ *                     store_name:
+ *                       type: string
+ *                     location:
+ *                       type: string
+ *                     whatsapp_contact:
+ *                       type: string
+ *                     is_verified:
+ *                       type: boolean
+ *                     total_items:
+ *                       type: integer
+ *       404:
+ *         description: Vendor not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/vendor/:id', async (req, res) => {
   try {
     const vendorId = parseInt(req.params.id);

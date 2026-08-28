@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import { forgotPassword, resetPassword } from '../controllers/authController';
-
-const router = Router();
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authController_1 = require("../controllers/authController");
+const router = (0, express_1.Router)();
 /**
  * @swagger
  * /api/auth/forgot-password:
@@ -33,8 +33,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.post('/forgot-password', forgotPassword);
-
+router.post('/forgot-password', authController_1.forgotPassword);
 /**
  * @swagger
  * /api/auth/reset-password:
@@ -65,6 +64,5 @@ router.post('/forgot-password', forgotPassword);
  *       500:
  *         description: Server error
  */
-router.post('/reset-password', resetPassword);
-
-export default router;
+router.post('/reset-password', authController_1.resetPassword);
+exports.default = router;

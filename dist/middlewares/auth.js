@@ -1,4 +1,7 @@
 "use strict";
+// ============================================================
+// AUTHENTICATION MIDDLEWARE
+// ============================================================
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -11,7 +14,7 @@ const requireClientAuth = (req, res, next) => {
     if (!token) {
         return res.status(401).json({
             success: false,
-            message: 'No token provided. Please login as a client.'
+            message: 'No token provided. Please login.'
         });
     }
     const secret = process.env.JWT_SECRET || 'default_secret';
@@ -39,7 +42,7 @@ const requireVendorAuth = (req, res, next) => {
     if (!token) {
         return res.status(401).json({
             success: false,
-            message: 'No token provided. Please login as a vendor.'
+            message: 'No token provided. Please login.'
         });
     }
     const secret = process.env.JWT_SECRET || 'default_secret';

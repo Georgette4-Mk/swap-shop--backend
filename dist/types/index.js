@@ -1,5 +1,5 @@
 "use strict";
 // ============================================================
-// TYPE DEFINITIONS - All interfaces for the application
+// TYPE DEFINITIONS
 // ============================================================
 Object.defineProperty(exports, "__esModule", { value: true });

@@ -1,4 +1,7 @@
 "use strict";
+// ============================================================
+// OWNERSHIP MIDDLEWARE
+// ============================================================
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkCatalogOwnership = void 0;
 const database_1 = require("../config/database");
