@@ -14,12 +14,31 @@ const swagger_1 = require("./config/swagger");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = Number(process.env.PORT) || 5000;
-app.use((0, helmet_1.default)());
+// ─── CORS CONFIGURATION ──────────────────────────
+// Get allowed origins from environment variable or use defaults
+const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['http://localhost:3000', 'http://localhost:5000', 'https://creative-delight-production-6b6c.up.railway.app'];
+console.log('🔗 CORS Origins:', corsOrigins);
 app.use((0, cors_1.default)({
-    origin: '*',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin)
+            return callback(null, true);
+        if (corsOrigins.indexOf(origin) !== -1 || corsOrigins.includes('*')) {
+            callback(null, true);
+        }
+        else {
+            console.warn(`❌ CORS blocked for origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
 }));
+// ─── OTHER MIDDLEWARE ────────────────────────────
+app.use((0, helmet_1.default)());
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // ─── SWAGGER DOCUMENTATION ──────────────────────
@@ -62,4 +81,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 Health: /api/health`);
     console.log(`📚 API Docs: /api-docs`);
+    console.log(`🔗 CORS Origins: ${corsOrigins.join(', ')}`);
 });
