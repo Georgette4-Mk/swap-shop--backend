@@ -17,26 +17,11 @@ const PORT = Number(process.env.PORT) || 5000;
 // ─── CORS CONFIGURATION ──────────────────────────
 // Define all allowed origins
 const allowedOrigins = [
-    // Production (Vercel)
     'https://swap-shop.vercel.app',
     'https://your-frontend-url.vercel.app',
     'https://creative-delight-production-6b6c.up.railway.app',
-    // Localhost (all ports)
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:5500',
-    'http://localhost:5501',
-    'http://localhost:5502',
-    'http://localhost:5000',
-    'http://localhost:5001',
-    // 127.0.0.1 (all ports)
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:5500',
-    'http://127.0.0.1:5501',
-    'http://127.0.0.1:5502',
-    'http://127.0.0.1:5000',
-    'http://127.0.0.1:5001',
+    'http://localhost:3000', 'http://localhost:3001', 'http://localhost:5500', 'http://localhost:5501', 'http://localhost:5502', 'http://localhost:5000', 'http://localhost:5001',
+    'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:5500', 'http://127.0.0.1:5501', 'http://127.0.0.1:5502', 'http://127.0.0.1:5000', 'http://127.0.0.1:5001',
 ];
 // Also allow from environment variable (Railway)
 const envOrigins = process.env.CORS_ORIGIN
